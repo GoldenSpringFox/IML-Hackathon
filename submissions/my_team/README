@@ -1,5 +1,6 @@
-TikvaPartouche
-346017304
+TikvaPartouche,BarShtoyer,NaomiKorem,AvivGoldstein
+346017304,211760756,211378971,322336116
+
 
 Model: sklearn HistGradientBoostingRegressor with Poisson loss trained on a station-hour demand grid.
 
@@ -36,3 +37,24 @@ Reproducing
 
 Requires: pandas, numpy, joblib, scikit-learn (>=1.0)
 Training takes roughly 5-15 minutes depending on hardware.
+
+## The Development Journey
+Our development process followed an iterative path, testing several paradigms to find the optimal balance between predictive accuracy and generalization.
+
+### Phase 1: Exploration & Initial Attempts
+* **Data Analysis:** We began with an in-depth exploratory data analysis (EDA). We discovered that demand patterns are highly non-linear, time-dependent, and heavily influenced by exogenous factors (weather, station location, and calendar events).
+* **Baseline Experiments:**
+    * **Linear Regression:** Proved insufficient for capturing the complex, non-linear dynamics of bike demand.
+    * **Deep Learning:** Implemented a Feed-Forward Neural Network. Proved to not work for us.
+
+### Phase 2: Gradient Boosting & Loss Optimization
+* **Tree-Based Models:** We hypothesized that some features correlate with the solution non linearly. we transitioned to Decision trees to combat that.
+* **L1 Loss Experiment:** We attempted to optimize directly for MAE using L1 as the loss function. However, due to the high density of zero-demand hours, the model frequently collapsed to a constant zero prediction, failing to capture activity during active hours.
+
+### Phase 3: Advanced Architectures & Convergence
+* **The Hurdle Model Approach:** We implemented a two-stage approach (Classifier + Regressor).
+    * The Classifier was tasked with predicting demand presence (demand > 0).
+    * The Regressor was tasked with predicting the count for positive samples.
+    * **Outcome:** While theoretically sound, this architecture increased the sensitivity of our error metric; minor misclassifications in the first stage led to large errors in the final MAE.
+* **Final Solution - Poisson Optimization:** * We converged on a **Poisson-optimized Gradient Boosting** model.
+    * The Poisson loss has helped us give a "tax" for the model, this proved to help with taking into account the 0 bike rental hours.
