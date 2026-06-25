@@ -1,75 +1,42 @@
+"""Shared evaluator interface for bike-demand submissions."""
+
 from abc import ABC, abstractmethod
+
 import numpy as np
 import pandas as pd
 
 
 class BaseModel(ABC):
-    """
-    Base class for bike-demand hackathon submissions.
+    """Abstract interface used by the local and official evaluators.
 
-    Competitors submit a folder:
+    A valid submission folder contains a fixed wrapper in ``predict.py``:
 
-        submissions/<team_name>/
-            model.py
-            train.py
-            weights.joblib   # or another artifact file, if evaluator is configured for it
+        class Model(BaseModel):
+            def load(self, weights_path: str) -> None: ...
+            def predict(self, test_df: pd.DataFrame) -> np.ndarray: ...
 
-    model.py must define a class named Model that subclasses BaseModel.
-
-    The evaluator will do:
+    The evaluator constructs that wrapper and calls:
 
         model = Model()
         model.load("submissions/<team_name>/weights.joblib")
-        predictions = model.predict(hidden_test_targets_df)
+        predictions = model.predict(test_targets_df)
 
-    Important:
-        hidden_test_targets_df is NOT ride-level data.
-        It is station-hour target data.
-
-        Each row means:
-            predict demand for this city + station + hour.
-
-        The dataframe will contain columns such as:
-            id
-            city
-            start_station_id
-            hour_ts or target_hour_start
-            date
-            weekday
-            hour
-            weather columns
-            station metadata columns
-
-        It will NOT contain:
-            demand
-            started_at
-            ended_at
-            end_station_id
-            usage_time_minutes
-            distance_meters
-            user_type
-
-    predict() must return:
-        a 1D array-like object of length len(test_df)
-
-    Values may be floats. The evaluator clips predictions to non-negative values.
+    ``test_targets_df`` is station-hour target data, not ride-level data. Each
+    row asks for the predicted number of rides starting from one station during
+    one hour. It must not contain the true ``demand`` label.
     """
 
     @abstractmethod
     def load(self, weights_path: str) -> None:
-        """Load trained weights/artifacts from disk."""
-        pass
+        """Load all trained artifacts needed for prediction."""
+        raise NotImplementedError
 
     @abstractmethod
     def predict(self, test_df: pd.DataFrame) -> np.ndarray:
-        """
-        Predict station-hour demand for each row in test_df.
+        """Return one numeric prediction per row of ``test_df``.
 
-        Args:
-            test_df:
-                Hidden station-hour target dataframe.
-
-        Returns:
-            1D array-like of predicted demand values.
+        Implementations should not mutate ``test_df`` and should not require a
+        ``demand`` column. Predictions should be finite and non-negative; the
+        evaluator also clips negative values to zero before scoring.
         """
-        pass
+        raise NotImplementedError

@@ -51,8 +51,8 @@ def build_features(df: pd.DataFrame, artifacts: dict) -> np.ndarray:
     """Build the feature matrix from a station-hour DataFrame.
 
     Works at both train time (called by train.py) and predict time
-    (called by BikeDemandModel.predict). LightGBM handles NaN natively,
-    so missing weather/metadata values are left as NaN.
+    (called by BikeDemandModel.predict). HistGradientBoostingRegressor handles
+    NaN values natively, so missing weather/metadata values are left as NaN.
     """
     n = len(df)
     out = {}
@@ -152,7 +152,7 @@ def build_features(df: pd.DataFrame, artifacts: dict) -> np.ndarray:
 
 
 class BikeDemandModel:
-    """LightGBM-based bike demand predictor.
+    """Histogram-gradient-boosting bike demand predictor.
 
     Predicts hourly ride counts per station for arbitrary cities.
     For unseen stations/cities, falls back to city-level or global demand stats.
