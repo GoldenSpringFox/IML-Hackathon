@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """Train the bike-demand model and save artifacts to weights.joblib.
 
 Run from inside the submission folder:
@@ -7,9 +6,10 @@ Run from inside the submission folder:
     cd submissions/my_team
     python train.py
 
-The script reads ../../dataset/local_train_set.csv, builds a full station-hour
-demand grid (including zero-demand hours), engineers features, trains a
-LightGBM model with MAE objective, and saves everything to weights.joblib.
+The script reads ../../dataset/train_set.csv, builds a station-hour demand
+grid with zero-demand hours, engineers features, trains a sklearn
+HistGradientBoostingRegressor with Poisson loss, and saves everything needed
+for prediction to weights.joblib.
 """
 
 import sys
@@ -24,34 +24,8 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 
 from model import normalize_sid, build_features, FEATURE_COLS, WEATHER_COLS, STATION_META_COLS
 
-"""
-Training script for the bike-demand submission.
-
-Run from this folder:
-
-    cd submissions/YOUR_TEAM_NAME
-    python train.py
-
-Expected dataset:
-
-    ../../dataset/local_train_set.csv
-
-Output:
-
-    weights.joblib
-
-The evaluator will later load weights.joblib through predict.py.
-"""
-
-from pathlib import Path
-
-import joblib
-import pandas as pd
-
-
-
 DATA_ROOT = Path("../../dataset")
-TRAIN_CSV = DATA_ROOT / "local_train_set.csv"
+TRAIN_CSV = DATA_ROOT / "train_set.csv"
 OUTPUT_WEIGHTS = "weights.joblib"
 
 
@@ -214,69 +188,78 @@ def main() -> None:
     grid = _build_training_grid(df)
     print(f"  {len(grid):,} station-hour rows | demand mean={grid['demand'].mean():.3f}")
 
-    global_mean = float(grid["demand"].mean())
     cities = sorted(grid["city"].unique())
     city_encoder = {c: i for i, c in enumerate(cities)}
 
-    print("Computing historical demand statistics ...")
-    lookup = _compute_lookup_artifacts(grid, global_mean)
-    lookup["city_encoder"] = city_encoder
-
-    print("Building feature matrix ...")
-    X = build_features(grid, lookup)
-    y = grid["demand"].values.astype(float)
-    print(f"  X: {X.shape} | y mean={y.mean():.3f} std={y.std():.3f}")
-
-    # Time-based split — last 15 % of chronological data used for early stopping
+    # Chronological split for honest early-stopping/model selection.
     order = pd.to_datetime(grid["hour_ts"]).argsort().values
     split = int(len(order) * 0.85)
     tr_idx, va_idx = order[:split], order[split:]
-    X_tr, y_tr = X[tr_idx], y[tr_idx]
-    X_va, y_va = X[va_idx], y[va_idx]
+
+    print("Computing historical demand statistics on training split...")
+    grid_tr = grid.iloc[tr_idx].reset_index(drop=True)
+    train_global_mean = float(grid_tr["demand"].mean())
+    lookup_tr = _compute_lookup_artifacts(grid_tr, train_global_mean)
+    lookup_tr["city_encoder"] = city_encoder
+
+    print("Building feature matrices...")
+    X_tr = build_features(grid.iloc[tr_idx], lookup_tr)
+    y_tr = grid["demand"].values[tr_idx].astype(float)
+
+    X_va = build_features(grid.iloc[va_idx], lookup_tr)
+    y_va = grid["demand"].values[va_idx].astype(float)
     print(f"  train={len(X_tr):,}  val={len(X_va):,}")
 
-    # Poisson loss: designed for count data, log-link ensures positive predictions,
-    # handles zero-inflated demand better than absolute_error (which collapses to 0
-    # when most labels are 0 because it targets the median).
-    print("Training HistGradientBoostingRegressor (Poisson, early stopping on 15% val) ...")
+    print("Training HistGradientBoostingRegressor on training split (Poisson, early stopping)...")
     model = HistGradientBoostingRegressor(
         loss="poisson",
         max_iter=3000,
-        learning_rate=0.05,
-        max_leaf_nodes=127,
+        learning_rate=0.03,
+        max_leaf_nodes=63,
         min_samples_leaf=20,
         early_stopping=True,
         validation_fraction=0.15,
         n_iter_no_change=50,
-        l2_regularization=0.1,
+        l2_regularization=0.5,
+        categorical_features=[0, 1, 2, 11, 12, 13, 14],
         random_state=42,
         verbose=1,
     )
-    model.fit(X, y)
+    model.fit(X_tr, y_tr)
     best_iter = model.n_iter_
 
     val_preds = np.maximum(0.0, model.predict(X_va))
     val_mae = float(np.abs(y_va - val_preds).mean())
-    print(f"  Val MAE (held-out): {val_mae:.4f}  |  trees used: {best_iter}")
+    print(f"  Honest Val MAE (held-out): {val_mae:.4f}  |  trees used: {best_iter}")
 
-    print(f"Retraining on full data with {best_iter} trees (no early stopping) ...")
+    print("Computing final historical demand statistics on full data...")
+    full_global_mean = float(grid["demand"].mean())
+    lookup_full = _compute_lookup_artifacts(grid, full_global_mean)
+    lookup_full["city_encoder"] = city_encoder
+
+    print("Building full feature matrix...")
+    X_full = build_features(grid, lookup_full)
+    y_full = grid["demand"].values.astype(float)
+
+    print(f"Retraining final model on full data with {best_iter} trees (no early stopping)...")
     final_model = HistGradientBoostingRegressor(
         loss="poisson",
         max_iter=best_iter,
-        learning_rate=0.05,
-        max_leaf_nodes=127,
+        learning_rate=0.03,
+        max_leaf_nodes=63,
         min_samples_leaf=20,
         early_stopping=False,
-        l2_regularization=0.1,
+        l2_regularization=0.5,
+        categorical_features=[0, 1, 2, 11, 12, 13, 14],
         random_state=42,
         verbose=0,
     )
-    final_model.fit(X, y)
+    final_model.fit(X_full, y_full)
 
     artifacts = {
         "model": final_model,
         "feature_cols": FEATURE_COLS,
-        **lookup,
+        **lookup_full,
     }
 
     joblib.dump(artifacts, OUTPUT_WEIGHTS, compress=3)
@@ -296,4 +279,3 @@ if __name__ == "__main__":
     if known.output:
         OUTPUT_WEIGHTS = known.output
     main()
-
