@@ -24,7 +24,7 @@ import pandas as pd
 
 
 DATA_ROOT = Path("../../dataset")
-TRAIN_CSV = DATA_ROOT / "train_set.csv"
+TRAIN_CSV = DATA_ROOT / "local_train_set.csv"
 OUTPUT_WEIGHTS = "weights.joblib"
 
 
