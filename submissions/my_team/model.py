@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+
 WEATHER_COLS = [
     "temperature_2m", "relative_humidity_2m", "apparent_temperature",
     "precipitation", "rain", "snowfall", "cloud_cover", "wind_speed_10m",

@@ -5,7 +5,7 @@ activate venv (windows):    venv\Scripts\activate
 update requirements:        pip freeze > requirements.txt
 
 --- Jupyter ---
-run jupyter (from venv):        jupyter lab --port 8888 --IdentityProvider.token IMLHackathon
+run jupyter (from venv):        jupyter lab --port 8888 --IdentityProvider.token IMLHackathon --ip 0.0.0.0
 open in browser:                http://localhost:8888/lab?token=IMLHackathon
 
 

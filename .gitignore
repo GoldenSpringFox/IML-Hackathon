@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.DS_Store
 
 # C extensions
 *.so
@@ -180,7 +181,7 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# Dataset — too large to commit; download from Moodle and place in dataset/
+# Dataset - too large to commit; download from Moodle and place in dataset/
 dataset/train_set.csv
 dataset/local_train_set.csv
 dataset/local_validation_set.csv
@@ -189,5 +190,6 @@ dataset/private_labels.csv
 dataset/public_test_targets.csv
 dataset/private_test_labels.csv
 
-# macOS
-.DS_Store
+# Local editor / MCP configuration
+.mcp.json
+.claude/settings.json
