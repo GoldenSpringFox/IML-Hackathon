@@ -1,5 +1,5 @@
-tikvapartouche,avimuller1102
-346017304,123456789
+tikvapartouche,
+346017304, 
 
 Model: sklearn HistGradientBoostingRegressor with MAE objective trained on a full station-hour demand grid.
 

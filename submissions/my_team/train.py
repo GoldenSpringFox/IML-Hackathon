@@ -207,18 +207,19 @@ def main() -> None:
     X_va, y_va = X[va_idx], y[va_idx]
     print(f"  train={len(X_tr):,}  val={len(X_va):,}")
 
-    # HistGradientBoostingRegressor: histogram-based boosting, handles NaN natively,
-    # MAE objective, comparable to LightGBM — no external C library needed.
-    print("Training HistGradientBoostingRegressor (MAE, early stopping on 15% val) ...")
+    # Poisson loss: designed for count data, log-link ensures positive predictions,
+    # handles zero-inflated demand better than absolute_error (which collapses to 0
+    # when most labels are 0 because it targets the median).
+    print("Training HistGradientBoostingRegressor (Poisson, early stopping on 15% val) ...")
     model = HistGradientBoostingRegressor(
-        loss="absolute_error",
+        loss="poisson",
         max_iter=3000,
         learning_rate=0.05,
         max_leaf_nodes=127,
         min_samples_leaf=20,
         early_stopping=True,
         validation_fraction=0.15,
-        n_iter_no_change=80,
+        n_iter_no_change=50,
         l2_regularization=0.1,
         random_state=42,
         verbose=1,
@@ -232,7 +233,7 @@ def main() -> None:
 
     print(f"Retraining on full data with {best_iter} trees (no early stopping) ...")
     final_model = HistGradientBoostingRegressor(
-        loss="absolute_error",
+        loss="poisson",
         max_iter=best_iter,
         learning_rate=0.05,
         max_leaf_nodes=127,
@@ -257,4 +258,13 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--train_csv", default=None, help="Override default train CSV path")
+    ap.add_argument("--output", default=None, help="Override default output weights path")
+    known, _ = ap.parse_known_args()
+    if known.train_csv:
+        TRAIN_CSV = Path(known.train_csv)
+    if known.output:
+        OUTPUT_WEIGHTS = known.output
     main()
