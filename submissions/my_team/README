@@ -1,15 +1,16 @@
-tikvapartouche,
-346017304, 
+TikvaPartouche
+346017304
 
-Model: sklearn HistGradientBoostingRegressor with MAE objective trained on a full station-hour demand grid.
+Model: sklearn HistGradientBoostingRegressor with Poisson loss trained on a station-hour demand grid.
 
 Architecture
 ------------
-We aggregate raw rides into hourly station-level demand (including zero-demand
-hours via an active-window grid). We then train a histogram-gradient-boosting
-regressor (sklearn HistGradientBoostingRegressor) that directly minimises MAE.
+We aggregate raw rides into hourly station-level demand, including zero-demand
+hours via an active-window grid. We then train a histogram-gradient-boosting
+regressor (sklearn HistGradientBoostingRegressor) with Poisson loss, which is
+well suited to non-negative count targets.
 
-Features (43 total):
+Features (40 total):
 - Time: hour, weekday, month + their sine/cosine encodings + peak-hour flags
 - Calendar: weekend, holiday, working_day
 - City identity (integer encoding)

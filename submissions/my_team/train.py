@@ -6,9 +6,10 @@ Run from inside the submission folder:
     cd submissions/my_team
     python train.py
 
-The script reads ../../dataset/train_set.csv, builds a full station-hour
-demand grid (including zero-demand hours), engineers features, trains a
-LightGBM model with MAE objective, and saves everything to weights.joblib.
+The script reads ../../dataset/train_set.csv, builds a station-hour demand
+grid (including zero-demand hours), engineers features, trains a sklearn
+HistGradientBoostingRegressor with Poisson loss, and saves everything to
+weights.joblib.
 """
 
 import sys

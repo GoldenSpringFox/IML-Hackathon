@@ -182,6 +182,8 @@ cython_debug/
 .cursorindexingignore
 
 # Dataset - too large to commit; download from Moodle and place in dataset/
+dataset
+dataset/
 dataset/train_set.csv
 dataset/local_train_set.csv
 dataset/local_validation_set.csv
@@ -189,6 +191,10 @@ dataset/public_validation_targets.csv
 dataset/private_labels.csv
 dataset/public_test_targets.csv
 dataset/private_test_labels.csv
+dataset/split_train.csv
+dataset/split_dev.csv
+dataset/split_test.csv
+dataset/split_holdout.csv
 
 # Local editor / MCP configuration
 .mcp.json
