@@ -1,0 +1,13 @@
+# Jupyter
+jupyterlab==4.4.1
+jupyter-collaboration==4.0.2
+jupyter-mcp-tools>=0.1.6
+ipykernel==7.3.0
+pycrdt==0.13.1
+
+# ML / Data
+pandas==3.0.3
+numpy==2.5.0
+matplotlib==3.11.0
+seaborn==0.13.2
+scikit-learn
